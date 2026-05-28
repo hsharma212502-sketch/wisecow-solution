@@ -1,6 +1,5 @@
 name: CI-CD
 
-
 on:
   push:
     branches: [ main ]
@@ -11,16 +10,14 @@ on:
 
 env:
   REGISTRY: ghcr.io
- 
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  
   build-and-push:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write        
+      packages: write
     outputs:
       image: ${{ steps.meta.outputs.tags }}
       digest: ${{ steps.build.outputs.digest }}
@@ -32,7 +29,6 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Log in to GitHub Container Registry
-        
         if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
@@ -68,10 +64,9 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
- 
   deploy:
-      needs: build-and-push
-     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.ENABLE_DEPLOY == 'true'
+    needs: build-and-push
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.ENABLE_DEPLOY == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -97,15 +92,12 @@ jobs:
         run: |
           kubectl apply -f k8s/00-namespace.yaml
           kubectl apply -f k8s/02-service.yaml
-          # Issuer + Ingress are applied if cert-manager / ingress are present.
           kubectl apply -f k8s/03-tls-issuer.yaml || echo "cert-manager not installed; skipping issuer"
           kubectl apply -f k8s/04-ingress-tls.yaml || echo "ingress controller not installed; skipping ingress"
           kubectl apply -f k8s/01-deployment.yaml
 
       - name: Roll out the new image (immutable SHA tag)
         run: |
-          IMAGE="${REGISTRY}/${{ steps.img.outputs.name }}:sha-${GITHUB_SHA::40}"
-          # metadata-action emits sha-<7..40 chars>; use the short form it produced.
           SHORT="${REGISTRY}/${{ steps.img.outputs.name }}:sha-$(git rev-parse --short=7 HEAD)"
           echo "Setting image to $SHORT"
           kubectl -n wisecow set image deployment/wisecow wisecow="$SHORT"
