@@ -1,13 +1,13 @@
-# Logs from PS2 scripts
+
 *.log
 response
 
-# Python
+
 __pycache__/
 *.pyc
 .venv/
 
-# Local kube/TLS artifacts
+
 *.key
 *.crt
 kubeconfig
