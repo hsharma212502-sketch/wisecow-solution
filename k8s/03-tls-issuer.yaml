@@ -1,14 +1,4 @@
-# Self-signed issuer chain for local (Kind/Minikube) TLS.
-#
-# We bootstrap a self-signed root, use it to mint a CA certificate, and then
-# create a CA-backed issuer that signs the actual Wisecow serving certificate.
-# This produces a proper certificate chain that browsers/curl can trust once
-# the CA cert is imported, and works completely offline (no ACME/Let's Encrypt
-# reachability required for a local cluster).
-#
-# Requires cert-manager to be installed in the cluster:
-#   kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.4/cert-manager.yaml
----
+
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
@@ -25,7 +15,7 @@ spec:
   isCA: true
   commonName: wisecow-ca
   secretName: wisecow-ca-secret
-  duration: 87600h   # 10 years
+  duration: 87600h   
   privateKey:
     algorithm: ECDSA
     size: 256

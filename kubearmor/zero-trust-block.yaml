@@ -1,13 +1,4 @@
-# =============================================================================
-# Companion explicit-Block policies for Wisecow
-# =============================================================================
-# These produce clear, high-signal violation telemetry that is easy to capture
-# in a screenshot (PS3 requirement #4), and they harden specific attack paths
-# regardless of the whitelist. They target the classic zero-trust violations:
-#   1. Reading sensitive credential files (/etc/passwd, /etc/shadow).
-#   2. Writing to system binary directories (tamper / persistence).
-#   3. Executing package managers / privilege tools not needed at runtime.
-# -----------------------------------------------------------------------------
+
 apiVersion: security.kubearmor.com/v1
 kind: KubeArmorPolicy
 metadata:
@@ -18,7 +9,7 @@ spec:
   message: "Blocked attempt to read sensitive credential files"
   tags:
     - MITRE
-    - T1003           # OS Credential Dumping
+    - T1003           
     - PCI-DSS
   selector:
     matchLabels:
@@ -70,7 +61,7 @@ spec:
   message: "Blocked execution of package managers / privilege escalation tools"
   tags:
     - MITRE
-    - T1059           # Command and Scripting Interpreter abuse
+    - T1059           
   selector:
     matchLabels:
       app.kubernetes.io/name: wisecow

@@ -17,8 +17,7 @@ spec:
         app.kubernetes.io/name: wisecow
         app.kubernetes.io/component: server
     spec:
-      # Pin to the image pushed by the CI pipeline. The CD job patches this
-      # field with the immutable :sha-<commit> tag on every deploy.
+      
       containers:
         - name: wisecow
           image: ghcr.io/OWNER/wisecow:latest
@@ -51,7 +50,7 @@ spec:
             capabilities:
               drop:
                 - ALL
-            readOnlyRootFilesystem: false  # app writes a FIFO at runtime
+            readOnlyRootFilesystem: false  
       securityContext:
         seccompProfile:
           type: RuntimeDefault
