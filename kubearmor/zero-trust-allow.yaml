@@ -1,0 +1,107 @@
+# =============================================================================
+# Zero-Trust (least-permissive / whitelist) KubeArmor policy for Wisecow
+# =============================================================================
+#
+# How KubeArmor whitelisting works:
+#   The moment ANY policy with `action: Allow` is applied to a workload, that
+#   workload switches to WHITELIST mode for the covered domain (process/file/
+#   network). Everything NOT explicitly allowed is then denied (when the default
+#   posture is `block`). See:
+#     https://docs.kubearmor.io/kubearmor/documentation/default_posture
+#     https://docs.kubearmor.io/kubearmor/use-cases/least_permissive_access
+#
+# Wisecow runtime needs (derived from wisecow.sh + Dockerfile):
+#   process : bash (entrypoint), nc (listener), cowsay (perl), fortune,
+#             plus the coreutils the script calls (cat, rm, mkfifo, sleep, echo).
+#   network : TCP only (HTTP server on :4499). ICMP/raw sockets are not needed.
+#
+# Apply order: this Allow policy first establishes the whitelist; the companion
+# block policies (zero-trust-block.yaml) add explicit, high-signal denials that
+# generate clear violation telemetry for the screenshot.
+# -----------------------------------------------------------------------------
+apiVersion: security.kubearmor.com/v1
+kind: KubeArmorPolicy
+metadata:
+  name: wisecow-zero-trust-allow
+  namespace: wisecow
+spec:
+  severity: 7
+  message: "Zero-trust: operation outside the Wisecow allow-list was denied"
+  tags:
+    - NIST
+    - MITRE
+    - zero-trust
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: wisecow
+
+  # ----- Allowed processes (anything else is blocked) -----
+  process:
+    matchPaths:
+      - path: /bin/bash
+      - path: /usr/bin/bash
+      - path: /bin/sh
+      - path: /usr/bin/dash
+      # netcat — the HTTP listener
+      - path: /bin/nc
+      - path: /usr/bin/nc
+      - path: /bin/nc.openbsd
+      - path: /usr/bin/nc.openbsd
+      # cowsay is a perl script
+      - path: /usr/games/cowsay
+      - path: /usr/bin/perl
+      # fortune
+      - path: /usr/games/fortune
+      # coreutils invoked by the script
+      - path: /bin/cat
+      - path: /usr/bin/cat
+      - path: /bin/rm
+      - path: /usr/bin/rm
+      - path: /usr/bin/mkfifo
+      - path: /bin/sleep
+      - path: /usr/bin/sleep
+      - path: /bin/echo
+    matchDirectories:
+      - dir: /usr/games/
+        recursive: true
+
+  # ----- Allowed file access (read of libraries, data, app dir) -----
+  file:
+    matchDirectories:
+      - dir: /home/wisecow/
+        recursive: true
+      - dir: /usr/share/cowsay/
+        recursive: true
+        readOnly: true
+      - dir: /usr/share/games/fortunes/
+        recursive: true
+        readOnly: true
+      - dir: /usr/share/perl/
+        recursive: true
+        readOnly: true
+      - dir: /usr/share/perl5/
+        recursive: true
+        readOnly: true
+      - dir: /lib/
+        recursive: true
+        readOnly: true
+      - dir: /usr/lib/
+        recursive: true
+        readOnly: true
+      - dir: /etc/
+        recursive: true
+        readOnly: true
+      - dir: /proc/
+        recursive: true
+      - dir: /dev/
+        recursive: true
+      - dir: /tmp/
+        recursive: true
+
+  # ----- Allowed network protocols (TCP/UDP only; no raw/ICMP) -----
+  network:
+    matchProtocols:
+      - protocol: tcp
+      - protocol: udp
+
+  action: Allow

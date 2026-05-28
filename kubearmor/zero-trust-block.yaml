@@ -1,0 +1,87 @@
+# =============================================================================
+# Companion explicit-Block policies for Wisecow
+# =============================================================================
+# These produce clear, high-signal violation telemetry that is easy to capture
+# in a screenshot (PS3 requirement #4), and they harden specific attack paths
+# regardless of the whitelist. They target the classic zero-trust violations:
+#   1. Reading sensitive credential files (/etc/passwd, /etc/shadow).
+#   2. Writing to system binary directories (tamper / persistence).
+#   3. Executing package managers / privilege tools not needed at runtime.
+# -----------------------------------------------------------------------------
+apiVersion: security.kubearmor.com/v1
+kind: KubeArmorPolicy
+metadata:
+  name: wisecow-block-sensitive-files
+  namespace: wisecow
+spec:
+  severity: 9
+  message: "Blocked attempt to read sensitive credential files"
+  tags:
+    - MITRE
+    - T1003           # OS Credential Dumping
+    - PCI-DSS
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: wisecow
+  file:
+    matchPaths:
+      - path: /etc/shadow
+      - path: /etc/passwd
+      - path: /etc/sudoers
+  action: Block
+---
+apiVersion: security.kubearmor.com/v1
+kind: KubeArmorPolicy
+metadata:
+  name: wisecow-block-system-bin-write
+  namespace: wisecow
+spec:
+  severity: 8
+  message: "Blocked write to system binary directories (tamper protection)"
+  tags:
+    - NIST
+    - file-integrity
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: wisecow
+  file:
+    matchDirectories:
+      - dir: /bin/
+        readOnly: true
+        recursive: true
+      - dir: /sbin/
+        readOnly: true
+        recursive: true
+      - dir: /usr/bin/
+        readOnly: true
+        recursive: true
+      - dir: /usr/sbin/
+        readOnly: true
+        recursive: true
+  action: Block
+---
+apiVersion: security.kubearmor.com/v1
+kind: KubeArmorPolicy
+metadata:
+  name: wisecow-block-pkg-and-priv-tools
+  namespace: wisecow
+spec:
+  severity: 8
+  message: "Blocked execution of package managers / privilege escalation tools"
+  tags:
+    - MITRE
+    - T1059           # Command and Scripting Interpreter abuse
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: wisecow
+  process:
+    matchPaths:
+      - path: /usr/bin/apt
+      - path: /usr/bin/apt-get
+      - path: /usr/bin/dpkg
+      - path: /usr/bin/curl
+      - path: /usr/bin/wget
+      - path: /usr/bin/chroot
+      - path: /bin/su
+      - path: /usr/bin/sudo
+  action: Block

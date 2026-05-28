@@ -1,0 +1,34 @@
+# Ingress that terminates TLS for the Wisecow service.
+#
+# cert-manager watches the `cert-manager.io/cluster-issuer` annotation, mints a
+# certificate for the listed host using the CA issuer, and stores it in the
+# `wisecow-tls` secret referenced under spec.tls. The NGINX ingress controller
+# then serves HTTPS using that certificate and proxies to the ClusterIP service.
+#
+# Requires an ingress controller, e.g. for Kind:
+#   kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: wisecow
+  namespace: wisecow
+  annotations:
+    cert-manager.io/cluster-issuer: "wisecow-ca-issuer"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - wisecow.local
+      secretName: wisecow-tls
+  rules:
+    - host: wisecow.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: wisecow
+                port:
+                  number: 80

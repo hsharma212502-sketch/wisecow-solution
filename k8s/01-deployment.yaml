@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wisecow
+  namespace: wisecow
+  labels:
+    app.kubernetes.io/name: wisecow
+    app.kubernetes.io/component: server
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: wisecow
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: wisecow
+        app.kubernetes.io/component: server
+    spec:
+      # Pin to the image pushed by the CI pipeline. The CD job patches this
+      # field with the immutable :sha-<commit> tag on every deploy.
+      containers:
+        - name: wisecow
+          image: ghcr.io/OWNER/wisecow:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 4499
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+          livenessProbe:
+            tcpSocket:
+              port: 4499
+            initialDelaySeconds: 5
+            periodSeconds: 15
+          readinessProbe:
+            tcpSocket:
+              port: 4499
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: false  # app writes a FIFO at runtime
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
