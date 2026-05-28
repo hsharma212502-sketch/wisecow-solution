@@ -20,7 +20,7 @@ spec:
       
       containers:
         - name: wisecow
-          image: ghcr.io/OWNER/wisecow:latest
+          image: ghcr.io/hsharma212502-sketch/wisecow:latest
           imagePullPolicy: Always
           ports:
             - name: http
